@@ -1,1 +1,1 @@
-# Healty_3D_Emoji
+# Healthy_3D_Emoji
