@@ -52,7 +52,7 @@ def main() :
     del Xtmp
 
     #split train dataset and test dataset
-    X_1, X_test, Y_1, Y_test = train_test_split(X,Y, test_size=0.1)
+    X_1, X_test, Y_1, Y_test = train_test_split(X,Y, test_size=0.3)
     X_train, X_val, Y_train, Y_val = train_test_split(X_1,Y_1, test_size=0.15)
     print(index)
 
