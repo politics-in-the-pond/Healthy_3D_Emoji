@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.IO;
 using System.Text;
+using System;
 
 public class GetPoseDataFromPython 
 {
@@ -12,16 +13,21 @@ public class GetPoseDataFromPython
     public delegate void PosReceiveHandler(int posX, int posY);
     public delegate void HeadReceiveHandler(int headScale);
     public delegate void TurnReceiveHandler(int pitch, int yaw, int roll);
+    public delegate void EarReceiveHandler(float right, float left);
+    public delegate void PoseReceiveHandler(double threshold1, double threshold2);
 
     public event PosReceiveHandler posSendEvent;
     public event HeadReceiveHandler headSendEvent;
     public event TurnReceiveHandler turnSendEvent;
+    public event EarReceiveHandler earSendEvent;
+    public event PoseReceiveHandler poseSendEvent;
+
 
     // Start is called before the first frame update
     public GetPoseDataFromPython()
     {
-        pythonProc.StartInfo.FileName = "C:/Users/aass7/AppData/Local/Programs/Python/Python38/python.exe";
-        pythonProc.StartInfo.Arguments = "-u C:/HealthyEmoji/Python/main.py";
+        pythonProc.StartInfo.FileName = "python";
+        pythonProc.StartInfo.Arguments = "-u ../Python/main.py";
         pythonProc.StartInfo.UseShellExecute = false;
         pythonProc.StartInfo.CreateNoWindow = true;
         pythonProc.StartInfo.RedirectStandardOutput = true;
@@ -47,9 +53,28 @@ public class GetPoseDataFromPython
 
         string[] poseData = e.Data.Split(" ");
 
-        if(!poseData[0].Equals("FromPython") || poseData.Length > 7)
+        if(poseData[0].Equals("FromPython") && poseData.Length == 11)
         {
-            return;
+            posSendEvent(int.Parse(poseData[1]), int.Parse(poseData[2]));
+            headSendEvent(int.Parse(poseData[3]));
+            turnSendEvent(int.Parse(poseData[4]), int.Parse(poseData[5]), int.Parse(poseData[6]));
+            try{
+                earSendEvent(float.Parse(poseData[9]), float.Parse(poseData[10]));
+                poseSendEvent(double.Parse(poseData[7]), double.Parse(poseData[8]));
+            }
+            catch(Exception ex){
+                UnityEngine.Debug.Log(ex);
+            }
+
+        
+        }//else if(poseData[0].Equals("FromPythonPose") && poseData.Length == 3){
+           // poseSendEvent(float.Parse(poseData[1]), float.Parse(poseData[2]));
+
+        //}else if(poseData[0].Equals("FromPythonEar") && poseData.Length == 3){
+          //  earSendEvent(float.Parse(poseData[1]), float.Parse(poseData[2]));
+
+        else{
+            UnityEngine.Debug.Log(e.Data);
         }
 
         /*
@@ -58,9 +83,6 @@ public class GetPoseDataFromPython
             UnityEngine.Debug.Log(str);
         }*/
 
-        posSendEvent(int.Parse(poseData[1]), int.Parse(poseData[2]));
-        headSendEvent(int.Parse(poseData[3]));
-        turnSendEvent(int.Parse(poseData[4]), int.Parse(poseData[5]), int.Parse(poseData[6]));
-    }
+        }
 }
 

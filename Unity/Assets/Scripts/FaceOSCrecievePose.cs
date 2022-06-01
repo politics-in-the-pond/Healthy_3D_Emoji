@@ -11,7 +11,17 @@ public class FaceOSCrecievePose : MonoBehaviour
     private float yaw;
     private float roll;
 
+    private float ri=1f;
+    private float le=1f;
+
+    private float th1=45.0f;
+    private float th2=1000.0f;
+    private int is_poseWrong = 0;
+
     public GameObject face;
+    public GameObject eye_right;
+    public GameObject eye_left;
+    public GameObject backlight;
 
     // Start is called before the first frame update
     void Start()
@@ -21,7 +31,8 @@ public class FaceOSCrecievePose : MonoBehaviour
         pose.posSendEvent += new GetPoseDataFromPython.PosReceiveHandler(pos);
         pose.headSendEvent += new GetPoseDataFromPython.HeadReceiveHandler(scaleHead);
         pose.turnSendEvent += new GetPoseDataFromPython.TurnReceiveHandler(turn);
-
+        pose.earSendEvent += new GetPoseDataFromPython.EarReceiveHandler(ear);
+        pose.poseSendEvent += new GetPoseDataFromPython.PoseReceiveHandler(poseDetection);
     }
 
     // Update is called once per frame
@@ -33,6 +44,15 @@ public class FaceOSCrecievePose : MonoBehaviour
         Quaternion target = Quaternion.Euler(pitch, -yaw, roll);
 
         face.transform.rotation = Quaternion.Slerp(face.transform.rotation, target, Time.deltaTime * 5.0f);
+
+        eye_right.transform.localScale = new Vector3(1f, 1f, ri);
+        eye_left.transform.localScale = new Vector3(1f, 1f, le);
+
+        if(is_poseWrong==0){
+            backlight.GetComponent<Light>().color = Color.white;
+        }else{
+            backlight.GetComponent<Light>().color = Color.red;
+        }
     }
 
     public void pos(int x, int y)
@@ -63,4 +83,24 @@ public class FaceOSCrecievePose : MonoBehaviour
         return m * x + c;
     }
 
+    public void ear(float right, float left){
+        ri = 1/(right-2.5f);
+        if(ri>1)
+            ri=1;
+        if(ri<0.01f)
+            ri=0.01f;
+        le = 1/(left-2.5f);
+        if(le>1)
+            le=1;
+        if(le<0.01f)
+            le=0.01f;
+    }
+
+    public void poseDetection(double threshold1, double threshold2){
+        if(threshold1>th1 && threshold2<th2){
+            is_poseWrong = 1;
+        }else{
+            is_poseWrong = 0;
+        }
+    }
 }

@@ -2,6 +2,7 @@ import sys
 import cv2
 import mediapipe as mp
 from math import sqrt
+import math
 
 COUNTER = 0
 TOTAL_BLINKS = 0
@@ -53,9 +54,7 @@ def blinkRatio(landmarks, right_indices, left_indices):
     right_eye_ratio = right_eye_horizontal_distance/right_eye_vertical_distance
     left_eye_ratio = left_eye_horizobtal_distance/left_eye_vertical_distance
 
-    eyes_ratio = (right_eye_ratio+left_eye_ratio)/2
-
-    return eyes_ratio
+    return right_eye_ratio, left_eye_ratio
 
 # For webcam input:
 cap = cv2.VideoCapture(0)
@@ -79,7 +78,8 @@ with mp_holistic.Holistic(
         if results.face_landmarks:
             # Get landmarks coordinates according to image scale
             coord = getLandmarksCoordinate(image, results)
-            eyes_ratio = blinkRatio(coord, RIGHT_EYE, LEFT_EYE)
+            right_eye_ratio, left_eye_ratio = blinkRatio(coord, RIGHT_EYE, LEFT_EYE)
+            eyes_ratio = (right_eye_ratio+left_eye_ratio)/2
 
             if eyes_ratio > 3.3:
                  COUNTER +=1
@@ -114,12 +114,31 @@ with mp_holistic.Holistic(
             roll = (coord[145][1] - coord[374][1])
             yaw = euclaideanDistance(coord[195],coord[130]) - euclaideanDistance(coord[195],coord[359])
             pitch = int(((coord[145][1] - coord[5][1]) + ( coord[374][1] - coord[5][1] )) / 2)
+            
+            #sys.stdout.flush()
+            #print("FromPythonEar", right_eye_ratio, left_eye_ratio)
+            #sys.stdout.flush()
+
+        if results.pose_landmarks:
+            mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS, landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style())
+            poses = results.pose_landmarks.landmark
+            xshoulder_median = (poses[11].x + poses[12].x) / 2
+            yshoulder_median = (poses[11].y + poses[12].y) / 2
+
+            eye_length = math.sqrt(math.pow(poses[2].x - poses[5].x, 2) + math.pow(poses[2].x - poses[5].x, 2))
+            ear_length = math.sqrt(math.pow(poses[7].x - poses[8].x, 2) + math.pow(poses[7].x - poses[8].x, 2))
+            shoulder_length = math.sqrt(math.pow(poses[11].x - poses[12].x, 2) + math.pow(poses[11].y - poses[12].y, 2))
+            nose_shoulder_length = math.sqrt(math.pow(xshoulder_median - poses[0].x, 2) + math.pow(yshoulder_median - poses[0].x, 2))
+
+            if shoulder_length != 0:
+                shoulder_length = 0.0000001
 
         # send to Unity
-        print("FromPython", posX, posY, sizeHead, roll, yaw, pitch)
+        print("FromPython", posX, posY, sizeHead, roll, yaw, pitch, nose_shoulder_length / shoulder_length / 100000, eye_length / shoulder_length / 100000, right_eye_ratio, left_eye_ratio)
         sys.stdout.flush()
 
             # Flip the image horizontally for a selfie-view display.
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
         cv2.imshow('MediaPipe Holistic', image)
         
         if cv2.waitKey(5) & 0xFF == 27:
